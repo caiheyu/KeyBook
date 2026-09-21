@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "versionName": "1.0",
+  "versionCode": 1,
+  "minSdk": 26,
+  "apkSha256": "b87567d1619013afe1c32640e18f93ea125862be20be7500186560cd924a5f84",
+  "signerCertificateSha256": "920d6f12bcd6f626e4a942df6667d31d7d5114a0d38f767a4b7a656313aced25",
+  "publishedAt": "2026-09-21T08:02:51Z",
+  "releaseNotes": "首次发布"
+}
