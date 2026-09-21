@@ -1,0 +1,39 @@
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# Gradle and build outputs
+.gradle/
+**/build/
+.kotlin/
+
+# Local Android SDK configuration
+local.properties
+
+# Native build outputs
+.externalNativeBuild/
+.cxx/
+
+# Android Studio outputs
+captures/
+
+# Release artifacts
+*.apk
+*.aab
+*.ap_
+
+# Signing files and local secrets
+*.jks
+*.keystore
+*.p12
+keystore.properties
+secrets.properties
+.env
+.env.*
+!.env.example
+
+# OS and diagnostic files
+.DS_Store
+Thumbs.db
+*.log
+*.hprof
