@@ -18,8 +18,8 @@ android {
         applicationId = "com.github.caiheyu.keybook"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         buildConfigField("String", "GITHUB_REPOSITORY_URL", "\"https://github.com/caiheyu/KeyBook\"")
 

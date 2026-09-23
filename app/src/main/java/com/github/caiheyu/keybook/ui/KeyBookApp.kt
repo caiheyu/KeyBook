@@ -86,6 +86,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -101,6 +102,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -110,6 +113,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Velocity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -1601,9 +1605,25 @@ private fun QuickGeneratorSheet(
             .onSuccess { preview = it; error = null }
             .onFailure { error = it.message }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val scrollState = rememberScrollState()
+    val upwardFlingBoundary = remember {
+        object : NestedScrollConnection {
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                // The scrollable form has reached its end. Do not let its remaining upward
+                // velocity settle the sheet again; downward velocity may still dismiss it.
+                return if (available.y < 0f) Velocity(0f, available.y) else Velocity.Zero
+            }
+        }
+    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("quickGeneratorSheet"),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(
-            Modifier.fillMaxWidth().heightIn(max = 680.dp).verticalScroll(rememberScrollState())
+            Modifier.fillMaxWidth().heightIn(max = 680.dp)
+                .nestedScroll(upwardFlingBoundary)
+                .verticalScroll(scrollState, overscrollEffect = null)
                 .padding(horizontal = 20.dp).padding(bottom = 32.dp),
         ) {
             Text("生成密码", style = MaterialTheme.typography.titleLarge)

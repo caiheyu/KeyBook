@@ -531,6 +531,7 @@ class KeyBookViewModel @Inject constructor(
     fun saveApp(companyId: String, id: String?, draft: AppDraft, onComplete: () -> Unit) =
         mutateCurrentWorkspace { workspaceId ->
             repository.saveApp(workspaceId, companyId, id, draft)
+            loadCompaniesInternal(workspaceId)
             loadAppsInternal(workspaceId, companyId)
             onComplete()
         }
@@ -559,6 +560,7 @@ class KeyBookViewModel @Inject constructor(
     ) =
         mutateCurrentWorkspace { workspaceId ->
             repository.deleteApp(workspaceId, id, expectedCounts)
+            loadCompaniesInternal(workspaceId)
             loadAppsInternal(workspaceId, companyId)
             onComplete()
         }

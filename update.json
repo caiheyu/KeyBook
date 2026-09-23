@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "versionName": "1.0",
-  "versionCode": 1,
+  "versionName": "1.1",
+  "versionCode": 2,
   "minSdk": 26,
-  "apkSha256": "b87567d1619013afe1c32640e18f93ea125862be20be7500186560cd924a5f84",
+  "apkSha256": "630e03128b621e0e23cdcc51a6de894fc2680681a95c4b3a254d72be285d6516",
   "signerCertificateSha256": "920d6f12bcd6f626e4a942df6667d31d7d5114a0d38f767a4b7a656313aced25",
-  "publishedAt": "2026-09-21T08:02:51Z",
-  "releaseNotes": "首次发布"
+  "publishedAt": "2026-09-23T01:50:17Z",
+  "releaseNotes": "修复密码生成器快速滑动时界面跳动的问题，优化使用体验"
 }

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -15,6 +16,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.swipeDown
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.platform.app.InstrumentationRegistry
@@ -387,6 +391,58 @@ class KeyBookNavigationTest {
             runBlocking {
                 repository.deleteApp(workspaceId, records.second.id)
                 repository.deleteCompany(workspaceId, records.first.id)
+            }
+        }
+    }
+
+    @Test
+    fun quickGeneratorStaysFixedDuringFastContentFlings() {
+        waitForHome()
+        val viewModel = activityViewModel()
+        val repository = EntryPointAccessors.fromApplication(
+            composeRule.activity.applicationContext,
+            DebugVaultEntryPoint::class.java,
+        ).vaultRepository()
+        val workspaceId = requireNotNull(viewModel.state.value.currentWorkspaceId)
+        val suffix = System.nanoTime().toString()
+        val company = runBlocking {
+            val createdCompany = repository.saveCompany(workspaceId, null, CompanyDraft("滑动企业-$suffix"))
+            val createdApp = repository.saveApp(workspaceId, createdCompany.id, null, AppDraft("滑动应用-$suffix"))
+            createdCompany to createdApp
+        }
+
+        try {
+            viewModel.refreshCompanies()
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule.onAllNodesWithText(company.first.name).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText(company.first.name).performClick()
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule.onAllNodesWithText(company.second.name).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText(company.second.name).performClick()
+            composeRule.onNodeWithText("新增账号").performClick()
+            composeRule.onNodeWithContentDescription("生成密码").performClick()
+            composeRule.waitForIdle()
+
+            val sheet = composeRule.onNodeWithTag("quickGeneratorSheet")
+            val top = sheet.fetchSemanticsNode().boundsInRoot.top
+            repeat(3) {
+                sheet.performTouchInput { swipeUp(durationMillis = 50) }
+                composeRule.waitForIdle()
+                assertEquals(top, sheet.fetchSemanticsNode().boundsInRoot.top, 1f)
+            }
+            composeRule.onNodeWithText("应用").assertIsDisplayed()
+            composeRule.onNodeWithText("生成密码").performScrollTo()
+            composeRule.waitForIdle()
+            sheet.performTouchInput { swipeDown(startY = centerY, endY = bottom - 20f, durationMillis = 150) }
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule.onAllNodesWithTag("quickGeneratorSheet").fetchSemanticsNodes().isEmpty()
+            }
+        } finally {
+            runBlocking {
+                repository.deleteApp(workspaceId, company.second.id)
+                repository.deleteCompany(workspaceId, company.first.id)
             }
         }
     }
