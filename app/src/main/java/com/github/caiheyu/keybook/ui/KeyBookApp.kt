@@ -1568,13 +1568,19 @@ private fun QuickGeneratorSheet(
         } ?: BuiltinGeneratorPresets.standard.rules
     }
     var rules by remember(defaultRules) { mutableStateOf(defaultRules) }
+    var lengthText by remember(defaultRules) { mutableStateOf(defaultRules.length.toString()) }
     var preview by remember { mutableStateOf(runCatching { generator.generate(defaultRules) }.getOrDefault("")) }
     var error by remember { mutableStateOf<String?>(null) }
     var saveName by remember { mutableStateOf<String?>(null) }
     var manager by remember { mutableStateOf(false) }
     var editor by remember { mutableStateOf<GeneratorEditorState?>(null) }
     var deleteId by remember { mutableStateOf<String?>(null) }
-    val rulesError = validationError { generator.validate(rules) }
+    val lengthError = if (lengthText.toIntOrNull() in 4..128) {
+        null
+    } else {
+        "密码长度须为 4–128"
+    }
+    val rulesError = lengthError ?: validationError { generator.validate(rules) }
     val options = remember(state.generatorPresets, state.defaultGenerator) {
         buildList {
             BuiltinGeneratorPresets.all.forEach { preset ->
@@ -1651,16 +1657,26 @@ private fun QuickGeneratorSheet(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("密码长度", modifier = Modifier.weight(1f))
                 OutlinedTextField(
-                    rules.length.toString(),
-                    { it.toIntOrNull()?.takeIf { value -> value in 4..128 }?.let { value -> rules = rules.copy(length = value) } },
+                    lengthText,
+                    {
+                        lengthText = it
+                        it.toIntOrNull()?.takeIf { value -> value in 4..128 }?.let { value ->
+                            rules = rules.copy(length = value)
+                        }
+                    },
                     modifier = Modifier.width(88.dp),
+                    isError = lengthError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                 )
             }
             Slider(
                 value = rules.length.toFloat(),
-                onValueChange = { rules = rules.copy(length = it.toInt()) },
+                onValueChange = {
+                    val length = it.toInt()
+                    rules = rules.copy(length = length)
+                    lengthText = length.toString()
+                },
                 valueRange = 4f..128f,
                 steps = 123,
             )
@@ -1857,6 +1873,7 @@ private fun GeneratorScreen(
 ) {
     val generator = remember { PasswordGenerator() }
     var rules by remember { mutableStateOf(BuiltinGeneratorPresets.standard.rules) }
+    var lengthText by remember { mutableStateOf(BuiltinGeneratorPresets.standard.rules.length.toString()) }
     var result by remember { mutableStateOf(generator.generate(rules)) }
     var visible by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -1891,13 +1908,19 @@ private fun GeneratorScreen(
             .thenByDescending { it.builtin })
     }
     var selected by remember { mutableStateOf<GeneratorSelection?>(null) }
-    val rulesError = validationError { generator.validate(rules) }
+    val lengthError = if (lengthText.toIntOrNull() in 4..128) {
+        null
+    } else {
+        "密码长度须为 4–128"
+    }
+    val rulesError = lengthError ?: validationError { generator.validate(rules) }
     LaunchedEffect(state.currentWorkspaceId, state.defaultGenerator, options) {
         if (appliedWorkspace != state.currentWorkspaceId && state.defaultGenerator != null) {
             appliedWorkspace = state.currentWorkspaceId
             selected = state.defaultGenerator
             options.firstOrNull { it.selection == selected }?.let {
                 rules = it.rules
+                lengthText = it.rules.length.toString()
                 result = generator.generate(it.rules)
             }
         }
@@ -1944,6 +1967,7 @@ private fun GeneratorScreen(
                             onClick = {
                                 selected = option.selection
                                 rules = option.rules
+                                lengthText = option.rules.length.toString()
                                 presetMenu = false
                                 regenerate()
                             },
@@ -2001,21 +2025,28 @@ private fun GeneratorScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("密码长度", modifier = Modifier.weight(1f))
                 OutlinedTextField(
-                    value = rules.length.toString(),
+                    value = lengthText,
                     onValueChange = { value ->
+                        lengthText = value
                         value.toIntOrNull()?.takeIf { it in 4..128 }?.let {
                             rules = rules.copy(length = it)
                             selected = null
                         }
                     },
                     modifier = Modifier.width(88.dp),
+                    isError = lengthError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                 )
             }
             Slider(
                 value = rules.length.toFloat(),
-                onValueChange = { rules = rules.copy(length = it.toInt()); selected = null },
+                onValueChange = {
+                    val length = it.toInt()
+                    rules = rules.copy(length = length)
+                    lengthText = length.toString()
+                    selected = null
+                },
                 valueRange = 4f..128f,
                 steps = 123,
             )
@@ -2140,6 +2171,7 @@ private fun GeneratorPresetEditorDialog(
 ) {
     var name by remember(initial) { mutableStateOf(initial.name) }
     var rules by remember(initial) { mutableStateOf(initial.rules) }
+    var lengthText by remember(initial) { mutableStateOf(initial.rules.length.toString()) }
     val generator = remember { PasswordGenerator() }
     val normalizedName = runCatching { InputValidation.normalizeName(name, 40) }.getOrNull()
     val nameError = validationError { InputValidation.normalizeName(name, 40) }
@@ -2154,7 +2186,12 @@ private fun GeneratorPresetEditorDialog(
         } else if (initial.id == null && customPresetCount >= 100) {
             "最多保存 100 个自定义预设"
         } else null
-    val rulesError = validationError { generator.validate(rules) }
+    val lengthError = if (lengthText.toIntOrNull() in 4..128) {
+        null
+    } else {
+        "密码长度须为 4–128"
+    }
+    val rulesError = lengthError ?: validationError { generator.validate(rules) }
     BottomSheetFrame(
         title = if (initial.id == null) "新建生成器预设" else "编辑生成器预设",
         onDismiss = onDismiss,
@@ -2173,16 +2210,26 @@ private fun GeneratorPresetEditorDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("密码长度", modifier = Modifier.weight(1f))
                     OutlinedTextField(
-                        rules.length.toString(),
-                        { it.toIntOrNull()?.takeIf { value -> value in 4..128 }?.let { value -> rules = rules.copy(length = value) } },
+                        lengthText,
+                        {
+                            lengthText = it
+                            it.toIntOrNull()?.takeIf { value -> value in 4..128 }?.let { value ->
+                                rules = rules.copy(length = value)
+                            }
+                        },
                         modifier = Modifier.width(88.dp),
+                        isError = lengthError != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                     )
                 }
                 Slider(
                     value = rules.length.toFloat(),
-                    onValueChange = { rules = rules.copy(length = it.toInt()) },
+                    onValueChange = {
+                        val length = it.toInt()
+                        rules = rules.copy(length = length)
+                        lengthText = length.toString()
+                    },
                     valueRange = 4f..128f,
                     steps = 123,
                 )
